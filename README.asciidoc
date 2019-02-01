@@ -1,0 +1,61 @@
+BSD `xargs(1)` is a persistent little devil.
+
+[quote, BSD General Commands Manual -- XARGS(1)]
+____
+The `xargs` utility exits immediately (without processing any further input) if a command line cannot be assembled, _utility_ cannot be invoked, an invocation of _utility_ is terminated by a signal, or an invocation of _utility_ exits with a value of 255.
+____
+
+Observe:
+
+----
+% cat input
+foo
+bar
+baz
+
+% cat prog255
+#!/bin/bash
+echo "$@"
+exit 255
+
+% cat prog1
+#!/bin/bash
+echo "$@"
+exit 1
+
+# This is the conservative behaviour we want.
+% xargs -n 1 ./prog255 <input
+foo
+% echo $?
+1
+
+# But what happens when utility exits with some _other_ non-zero value?
+% xargs -n 1 ./prog1 <input
+foo
+bar
+baz
+% echo $?
+1
+----
+
+Default `xargs` behaviour is often unsatisfactory when precision and safety are a concern.  Any invocation of _utility_ that exits with a non-zero value should terminate processing.
+
+`xasafe` is a simple wrapper that translates any non-zero exit value to 255.
+
+Observe:
+
+----
+# xargs+prog255 works as before.
+% xargs -n 1 xasafe ./prog255 <input
+foo
+xasafe: child: exit status 255
+% echo $?
+1
+
+# xargs+prog1 now works as it should.
+% xargs -n 1 xasafe ./prog1 <input
+foo
+xasafe: child: exit status 1
+% echo $?
+1
+----
