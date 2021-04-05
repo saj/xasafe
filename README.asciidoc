@@ -5,7 +5,7 @@ ____
 The `xargs` utility exits immediately (without processing any further input) if a command line cannot be assembled, _utility_ cannot be invoked, an invocation of _utility_ is terminated by a signal, or an invocation of _utility_ exits with a value of 255.
 ____
 
-Observe:
+Set the scene:
 
 ----
 % cat input
@@ -22,14 +22,20 @@ exit 255
 #!/bin/bash
 echo "$@"
 exit 1
+----
 
-# This is the conservative behaviour we want.
+This is the conservative behaviour we want:
+
+----
 % xargs -n 1 ./prog255 <input
 foo
 % echo $?
 1
+----
 
-# But what happens when utility exits with some _other_ non-zero value?
+But what happens when _utility_ exits with some _other_ non-zero value?
+
+----
 % xargs -n 1 ./prog1 <input
 foo
 bar
@@ -42,20 +48,22 @@ Default `xargs` behaviour is often unsatisfactory when precision and safety are 
 
 `xasafe` is a simple wrapper that translates any non-zero exit value to 255.
 
-Observe:
+`xargs` over `prog255` works as before:
 
 ----
-# xargs+prog255 works as before.
 % xargs -n 1 xasafe ./prog255 <input
 foo
-xasafe: child: exit status 255
+xasafe: ./prog255: exit status 255
 % echo $?
 1
+----
 
-# xargs+prog1 now works as it should.
+`xargs` over `prog1` now works as it should:
+
+----
 % xargs -n 1 xasafe ./prog1 <input
 foo
-xasafe: child: exit status 1
+xasafe: ./prog1: exit status 1
 % echo $?
 1
 ----
